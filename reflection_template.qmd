@@ -1155,7 +1155,7 @@ In general, I've used the feedback to resubmit almost all of my assignments and 
 
 <!-- How did you extended your thinking throughout the course? How did you extend your thinking on the code examples you have provided in your portfolio? -->
 
-The feedback provided was very helpful as it challenged me to learn new ways of accomplishing the task. Specifically for Lab 4, you provided the feedback of looking for a way to reordering grammatically instead of my hand by using fct_reorder(). I realized that for most things you think of, there's probably a function for the intended purpose.
+The feedback provided was very helpful as it challenged me to learn new ways of accomplishing the task. Specifically for Lab 4, you provided the feedback of looking for a way to reordering through functions instead of my hand by using fct_reorder(). I realized that for most things you think of, there's probably a function for the intended purpose.
 
 Another way I extended my thinking was connecting what you taught about using shapes instead of just colors for color blind people to make work more accessible. I looked into color blind palette and found packages which are suitable for most color blind folks through the virdis package. The reason this was important was because I learned about WCAG from my UI class and realized I should apply the same to programming in R.
 
