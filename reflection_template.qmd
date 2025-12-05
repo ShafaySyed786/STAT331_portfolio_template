@@ -35,20 +35,20 @@ format:
 teacher_evals <- read_csv(here("Week3", "teacher_evals.csv"), show_col_types = FALSE)
 ```
 
--   `xlsx`
+-   csv Example 2
+
+```{r}
+#| label: wd-1-csv-2
+# Lab 7 Setup
+fish <- read_csv(here("Week7", "data", "BlackfootFish.csv"), show_col_types = FALSE)
+```
+
+-   xlsx
 
 ```{r}
 #| label: wd-1-xlsx
 # Check-in 2.4 Question 5
 agesxl <- read_xlsx (path = here::here("Week 2", "Check-ins", "Ages_Data", "ages.xlsx"), sheet = "ages")
-```
-
--   `txt`
-
-```{r}
-#| label: wd-1-txt
-# Check-in 2.2 Question 3
-ages_tab <- read_table (file = here::here("Week 2", "Check-ins", "Ages_Data", "ages_tab.txt"))
 ```
 
 **WD-2: I can select necessary columns from a dataset.**
@@ -80,15 +80,27 @@ teacher_evals_clean <- teacher_evals |>
 #| label: wd-2-ex-2
 #| label: uncovering-missing-values
 tc_na <- teacher_evals_clean |>
-  filter(if_any(-c(teacher_id, course_id, question_no), is.na)) |>
+# modified to use named args
+  filter(if_any(
+      .cols = -c(teacher_id, course_id, question_no),
+      .fns  = is.na
+    )) |>
   distinct(teacher_id, course_id)
 
 tc_na
 
 teacher_evals_clean |>
   filter(teacher_id == tc_na$teacher_id, course_id == tc_na$course_id) |>
-  summarise(across(-c(teacher_id, course_id, question_no), ~ any(is.na(.)))) |>
-  pivot_longer(everything(), names_to = "variable", values_to = "has_na") |>
+  # named args
+  summarise(across(
+      .cols = -c(teacher_id, course_id, question_no),
+      .fns  = ~ any(is.na(.))
+    )) |>
+  pivot_longer(
+    cols      = everything(),
+    names_to  = "variable",
+    values_to = "has_na"
+  ) |>
   filter(has_na)
 ```
 
@@ -141,11 +153,42 @@ income_region_2008_2018 <- ca_childcare |>
 income_region_2008_2018
 ```
 
+-   Numeric Example 2
+
+```{r}
+#| label: question-1-high-low
+# Lab 3 Question 10
+q10 <- teacher_evals_clean |>
+  filter(question_no == 901) |>
+  group_by(teacher_id) |>
+  summarise(
+  n_courses = n_distinct(course_id),
+  avg_q1 = mean(SET_score_avg, na.rm = TRUE),
+  .groups = "drop"
+  ) |>
+  filter(n_courses >= 5)
+
+bind_rows(
+  q10 |> slice_max(avg_q1, n = 1, with_ties = TRUE) |> mutate(which = "highest"),
+  q10 |> slice_min(avg_q1, n = 1, with_ties = TRUE) |> mutate(which = "lowest")
+)
+```
+
+-   Character Example 1
+
+```{r}
+# Lab 5 Initial Investigation Using Assignment Hints
+crime_clue <- crime_scene_report |>
+  mutate(date = ymd(date)) |>
+  filter(city == "SQL City", type == "murder", date == murder_date) |>
+  distinct(description)
+```
+
 -   Character Example 2 (example must use functions from **stringr**)
 
 ```{r}
 #| label: wd-3-string
-# Lab 5
+# Lab 5 Initial Investigation Using Assignment Hints
 witness2 <- person |>
   filter(address_street_name == "Franklin Ave",
          # name starts with Annabel
@@ -157,7 +200,7 @@ witness2 <- person |>
 
 ```{r}
 #| label: wd-3-date
-# Lab 5
+# Lab 5 Initial Investigation Using Assignment Hints
 crime_clue <- crime_scene_report |>
   mutate(date = ymd(date)) |>
   # We were told this through the text above which tells us SQL City, date, and murder details
@@ -171,7 +214,7 @@ crime_clue <- crime_scene_report |>
 -   Numeric Example 1
 
 ```{r}
-# Challenge 4
+# Challenge 4 Summary Table
 summary_table <- ca_childcare |>
   filter(study_year %in% c(2008, 2018)) |>
   group_by(census_region, study_year) |>
@@ -195,7 +238,16 @@ summary_table <- ca_childcare |>
 kable(summary_table, caption = "Median weekly infant prices (USD) by region and setting, 2008 vs 2018")
 ```
 
--   Factor Example 1 (renaming levels) and Factor Example 2 (reordering levels)
+-   Numeric Example 2
+
+```{r}
+#| label: transform-data-to-have-correct-units
+# Challenge 7 Question 1
+fish <- fish |>
+  mutate(length_cm = length / 10)
+```
+
+-   Factor Example 1 (renaming levels)
 
 ```{r}
 #| label: wd-4-factor-ex-1
@@ -215,34 +267,49 @@ census_region = fct_reorder(
 )
 ```
 
+-   Factor Example 1 (reordering levels)
+
+```{r}
+# Lab 9 Question 6
+mutate(
+    variable = fct_relevel(variable, "Seniority","Sex","Academic Degree"),
+    level_order = case_when(
+# https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/match
+      variable == "Academic Degree" ~ match(level, c("No Degree","Masters","Doctorate","Tenured Professor")),
+      variable == "Seniority"       ~ match(level, c("Junior","Senior")),
+      variable == "Sex"             ~ match(level, c("Female","Male")),
+      TRUE ~ NA_integer_
+    )
+  )
+```
+
 -   Character (example must use functions from **stringr**)
 
 ```{r}
-# Lab 4 Question 4
 #| label: wd-4-string
-ca_childcare <- ca_childcare |>
-  mutate(
-    county_name = str_remove(county_name, " County"),
-    census_region = fct_collapse(
-      factor(county_name),
-      "Superior California" = superior_counties,
-      "North Coast" = north_coast_counties,
-      "San Francisco Bay Area" = san_fran_counties,
-      "Northern San Joaquin Valley" = n_san_joaquin_counties,
-      "Central Coast" = central_coast_counties,
-      "Southern San Joaquin Valley" = s_san_joaquin_counties,
-      "Inland Empire" = inland_counties,
-      "Los Angeles" = la_county,
-      "Orange" = orange_county,
-      "San Diego-Imperial" = san_diego_imperial_counties
+# Lab 9 Question 5
+mutate(
+    sen_level = case_when(
+      seniority <= 4 ~ "Junior",
+      seniority <= 8 ~ "Senior",
+      seniority >  8 ~ "Very Senior",
+      TRUE ~ NA_character_
+    ),
+    academic_degree = case_when(
+      str_to_lower(academic_degree) %in% c("phd","doctorate","doctoral") ~ "Doctorate",
+      str_to_lower(academic_degree) %in% c("masters","master","ma","ms")  ~ "Masters",
+      str_detect(str_to_lower(academic_degree), "no")                      ~ "No Degree",
+      str_detect(str_to_lower(academic_degree), "tenur")                   ~ "Tenured Professor",
+      TRUE ~ academic_degree
+    ),
+    sex = str_to_title(sex)
   )
-)
 ```
 
 -   Date (example must use functions from **lubridate**)
 
 ```{r}
-# Lab 5
+# Lab 5 Initial Investigation Using Assignment Hints
 #| label: wd-4-date
 crime_clue <- crime_scene_report |>
   mutate(date = ymd(date)) |>
@@ -271,7 +338,8 @@ ca_childcare <- ca_childcare |>
 
 ```{r}
 #| label: wd-5-right
-# Lab 5, changed for purposes of portfolio
+# Lab 5 Initial Investigation Using Assignment Hints
+# changed for purposes of portfolio
 # Original:
 witness1 <- person |>
   rename(person_id = id) |>
@@ -289,15 +357,45 @@ witness1_right <- interview |>
 )
 ```
 
+-   Left or Right Join Example 2
+
+```{r}
+#| label: wd-5-right-or-left
+# Lab 5 Final Candidate Investigation
+# The original unmodified part from right_join() Example 1
+witness1 <- person |>
+  rename(person_id = id) |>
+  filter(address_street_name == "Northwestern Dr") |>
+  slice_max(address_number, n = 1) |>
+  left_join(interview, by = "person_id")
+```
+
 -   `inner_join()` Example 1
 
 ```{r}
 #| label: wd-5-inner-ex-1
-# Lab 5
+# Lab 5 Gym and Plate Investigation
 gym_on_jan9 <- get_fit_now_check_in |>
   filter(check_in_date == 20180109) |>
   inner_join(gym_candidates, by = c("membership_id" = "id")) |>
   distinct(person_id)
+```
+
+-   inner_join() Example 2
+
+```{r}
+#| label: wd-5-inner-ex-2
+# Lab 5 Car and Physical description investigation of Mastermind
+candidates_attr <- person |>
+  inner_join(drivers_license2, by = "license_id") |>
+  filter(
+    hair_color == "red",
+    between(height, 65, 67),
+    car_make  == "Tesla",
+    car_model == "Model S"
+  ) |>
+  select(id, name, license_id, hair_color, height, car_make, car_model) |>
+  distinct()
 ```
 
 **WD-6: I can use filtering joins to filter rows from a dataframe.**
@@ -306,14 +404,45 @@ gym_on_jan9 <- get_fit_now_check_in |>
 
 ```{r}
 #| label: wd-6-semi
-
+# Original Lab 5 Code:
+gym_on_jan9 <- get_fit_now_check_in |>
+  filter(check_in_date == 20180109) |>
+  inner_join(gym_candidates, by = c("membership_id" = "id")) |>
+  distinct(person_id)
+# Modified Lab 5 Code:
+gym_on_jan9 <- gym_candidates |>
+  semi_join(
+    get_fit_now_check_in |>
+      filter(check_in_date == 20180109),
+    by = c("id" = "membership_id")
+  ) |>
+  distinct(person_id)
 ```
 
 -   `anti_join()`
 
 ```{r}
 #| label: wd-6-anti
+# Original Lab 5 Code:
+concert_visitors <- facebook_event_checkin |>
+  filter(event_name == "SQL Symphony Concert",
+                date >= 20171201, date <= 20171231) |>
+  count(person_id, name = "visits") |>
+  filter(visits >= 3)
 
+final_candidates <- candidates_attr |>
+  rename(person_id = id) |>
+  inner_join(concert_visitors, by = "person_id")
+# Modified Lab 5 Code to show visitors who did NOT visit the concert:
+concert_visitors <- facebook_event_checkin |>
+  filter(event_name == "SQL Symphony Concert",
+         date >= 20171201, date <= 20171231) |>
+  count(person_id, name = "visits") |>
+  filter(visits >= 3)
+
+non_concert_candidates <- candidates_attr |>
+  rename(person_id = id) |>
+  anti_join(concert_visitors, by = "person_id")
 ```
 
 **WD-7: I can pivot dataframes from long to wide and visa versa**
@@ -343,13 +472,19 @@ ca_childcare |>
 income_region_2008_2018 <- ca_childcare |>
   filter(study_year %in% c(2008, 2018)) |>
   group_by(census_region, study_year) |>
-  summarise(median_mhi_2018 = median(mhi_2018, na.rm = TRUE), .groups = "drop") |>
+  summarise(
+    median_mhi = median(mhi_2018, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
   pivot_wider(
-    names_from = study_year,
-    values_from = median_mhi_2018
+    names_from  = study_year,
+    values_from = median_mhi,
+    names_glue  = "median_mhi_{study_year}"
   ) |>
   rename(region = census_region) |>
-  arrange(desc(`2018`))
+  arrange(desc(median_mhi_2018))
+
+income_region_2008_2018
 ```
 
 ## Reproducibility
@@ -443,10 +578,11 @@ teacher_evals_compare <- teacher_evals |>
 -   Example of function formatting
 
 ```{r}
-# Challenge 4
 #| label: r-2-3
-#| label: summary-table
+# Challenge 4 Summary Table
+# Building a summary table of median infant prices by region and year.
 summary_table <- ca_childcare |>
+  # Keeping only the two study years of interest
   filter(study_year %in% c(2008, 2018)) |>
   group_by(census_region, study_year) |>
   summarise(
@@ -454,19 +590,44 @@ summary_table <- ca_childcare |>
     family = median(mfcc_infant, na.rm = TRUE),
     .groups = "drop"
   ) |>
-  pivot_wider(names_from = study_year, values_from = c(center, family), names_sep = "_") |>
+  # Go from long, year as rows, to wide using year as columns.
+  pivot_wider(
+    names_from  = study_year,
+    values_from = c(center, family),
+    names_sep   = "_"
+  ) |>
   mutate(
     region = census_region,
-    `Center 2008` = center_2008,
-    `Family 2008` = family_2008,
-    `Center 2018` = center_2018,
-    `Family 2018` = family_2018,
-    `Gap 2018 (Center−Family)` = center_2018 - family_2018
+    `Median center price, 2008 (USD/week)`  = center_2008,
+    `Median family price, 2008 (USD/week)`  = family_2008,
+    `Median center price, 2018 (USD/week)`  = center_2018,
+    `Median family price, 2018 (USD/week)`  = family_2018,
+    `Gap in 2018 (center − family, USD/week)` = center_2018 - family_2018
   ) |>
-  select(region, `Center 2008`, `Family 2008`, `Center 2018`, `Family 2018`, `Gap 2018 (Center−Family)`) |>
+  select(
+    region,
+    `Center 2008`,
+    `Family 2008`,
+    `Center 2018`,
+    `Family 2018`,
+    `Gap 2018 (Center−Family)`
+  ) |>
   arrange(desc(`Center 2018`)) |>
-  mutate(across(where(is.numeric), ~ round(.)))
-kable(summary_table, caption = "Median weekly infant prices (USD) by region and setting, 2008 vs 2018")
+  mutate(
+    across(
+      where(is.numeric),
+      ~ round(.)
+    )
+  )
+
+# Formatted function call with multiple arguments.
+kable(
+  summary_table,
+  caption   = "Median weekly infant prices (USD) by region and setting, 2008 vs 2018",
+  align     = "lrrrrr",
+  booktabs  = TRUE
+)
+
 ```
 
 **R-3: I can write robust programs that are resistant to changes in inputs.**
@@ -475,6 +636,7 @@ kable(summary_table, caption = "Median weekly infant prices (USD) by region and 
 
 ```{r}
 # Lab 4 Question 5
+# This example is robust because it doesn't depend on or assume a fixed set of regions.
 #| label: r-3-example
 #| label: median-income-by-region-over-time
 income_region_2008_2018 <- ca_childcare |>
@@ -494,7 +656,21 @@ income_region_2008_2018 <- ca_childcare |>
 
 ```{r}
 #| label: r-3-function-stops
+# Lab 8 Question 1
+rescale_01 <- function(x) {
+  if (!is.numeric(x)) {
+    stop("`x` must be numeric.")
+  }
+  if (length(x) <= 1) {
+    stop("`x` must have length greater than 1.")
+  }
+  r <- range(x, na.rm = TRUE)
+  (x - r[1]) / (r[2] - r[1])
+}
 
+rescale_column <- function(data, cols) {
+  mutate(data, across({{ cols }}, rescale_01))
+}
 ```
 
 ## Data Visualization & Summarization
@@ -561,8 +737,9 @@ p_base <- ggplot(
     fill = "Sex",
     color = "Sex"
   ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  # Changed to make easier to read instead of tilting head.
+  coord_flip()
+  theme_minimal()
 
 sex_cols <- c(F = "steelblue", M = "orange3")
 p_manual <- p_base +
@@ -586,7 +763,8 @@ p_pkg
 #| label: recreate-plot
 ggplot(teacher_evals_compare, aes(x = sen_level, fill = SET_level)) +
   geom_bar(stat = "count", position = "fill", width = 0.9) +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1), expand = c(0, 0)) +
+  # Updated percent_format to label_percent.
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1), expand = c(0, 0)) +
   scale_fill_manual(
     name = "Evaluation Rating",
     values = c(excellent = "#B39DDB", standard = "#B48A54")
@@ -602,36 +780,29 @@ ggplot(teacher_evals_compare, aes(x = sen_level, fill = SET_level)) +
 -   Dates (time series plot)
 
 ```{r}
-# Lab 4 Challenge Summary Table
+# Challenge 7 Question 5
 #| label: dvs-2-date
-plot_data <- ca_childcare |>
-  group_by(census_region, study_year) |>
-  summarise(
-    center = median(mc_infant, na.rm = TRUE),
-    family = median(mfcc_infant, na.rm = TRUE),
-    .groups = "drop"
-  ) |>
-  pivot_longer(c(center, family), names_to = "setting", values_to = "weekly_price") |>
-  mutate(
-    setting = recode(setting, center = "Center-based", family = "Family (in-home)"),
-    order_val = if_else(study_year == 2018 & setting == "Center-based", weekly_price, NA_real_),
-    census_region = fct_reorder(census_region, order_val, .fun = ~ max(., na.rm = TRUE), .desc = TRUE)
-  )
+#| label: condition-indices-over-time
+ci_by_year_species <- fish |>
+  mutate(ci = condition_index(weight, length_cm)) |>
+  drop_na(ci, year, species) |>
+  group_by(year, species) |>
+  summarise(median_ci = median(ci), n = n(), .groups = "drop") |>
+  ungroup() |>
+  mutate(species = fct_reorder(species, median_ci, .fun = median))
 
-  ggplot(plot_data, ggplot2::aes(x = study_year, y = weekly_price, color = setting)) +
+ci_by_year_species |>
+  ggplot(aes(x = year, y = median_ci, color = species)) +
   geom_line() +
-  geom_point(size = 1.2) +
-  facet_wrap(~ census_region, ncol = 5) +
-  scale_x_continuous(breaks = seq(2008, 2018, 2), limits = c(2008, 2018)) +
-  scale_y_continuous(labels = scales::label_dollar(accuracy = 1)) +
+  geom_point(aes(size = n)) +
   labs(
-    x = "Study Year",
-    y = "Median weekly price (USD)",
-    color = "Setting",
-    title = "Infant childcare prices in California: Center-based vs Family (2008–2018)"
+    title = "Fish Condition Index Over Time by Species",
+    x = "Year",
+    y = "Median condition index",
+    color = "Species",
+    size  = "n fish"
   ) +
-  theme_minimal(base_size = 12) +
-  theme(legend.position = "bottom", aspect.ratio = 1)
+  theme_minimal()
 ```
 
 **DVS-2: I use plot modifications to make my visualization clear to the reader.**
@@ -641,71 +812,10 @@ plot_data <- ca_childcare |>
 ```{r}
 # Lab 4 Question 7
 #| label: dvs-2-ex-1
-theme_minimal(base_size = 14) +
-  theme(
-  legend.position = "right",
-  aspect.ratio = 1,
-  panel.grid.minor = element_blank()
-```
+#| label: recreate-plot
+#| fig-width: 12
+#| fig-height: 4.5
 
--   I can modify my colors to be accessible to anyone's eyes
-
-```{r}
-# Lab 2 Challenge
-#| label: dvs-2-ex-2
-p_pkg <- p_base +
-  # Source: https://ggplot2.tidyverse.org/reference/scale_viridis.html
-  scale_fill_viridis_d(option = "C") +
-  scale_color_viridis_d(option = "C", guide = "none")
-p_pkg
-```
-
--   I can modify my plot titles to clearly communicate the data context
-
-```{r}
-# Lab 4 Question 8
-#| label: dvs-2-ex-3
-#| label: scatterplot-median-income-vs-childcare-cost
-ca_childcare |>
-  filter(!is.na(mhi_2018), !is.na(mc_infant)) |>
-  mutate(
-    census_region = fct_reorder(census_region, mc_infant, .fun = median, .desc = TRUE)
-  ) |>
-  ggplot(aes(x = mhi_2018, y = mc_infant, color = census_region)) +
-  geom_point(alpha = 0.6, size = 1.5) +
-  geom_smooth(aes(group = 1), method = "lm", se = FALSE) +
-  scale_x_continuous(labels = scales::dollar_format(accuracy = 1)) +
-  scale_y_continuous(labels = scales::dollar_format(accuracy = 1)) +
-  labs(
-    x = "Median household income (2018 dollars)",
-    y = "Weekly price: center-based infant care ($)",
-    color = "California Region",
-    title = "Median Household Income vs. Infant Center-Based Childcare Prices (CA)"
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(aspect.ratio = 1)
-```
-
--   I can modify the text in my plot to be more readable
-
-```{r}
-#| label: dvs-2-ex-4
-labs(
-    title = "Rodent Weight by Species and Sex",
-    x = "Species",
-    y = "Weight (g)",
-    fill = "Sex",
-    color = "Sex"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
--   I can reorder my legend to align with the colors in my plot
-
-```{r}
-# Lab 4 Question 7
-#| label: dvs-2-ex-5
 pal10 <- colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(10)
 
 ca_childcare |>
@@ -750,6 +860,130 @@ census_region = fct_reorder(
   aspect.ratio = 1,
   panel.grid.minor = element_blank()
 )
+```
+
+-   I can modify my colors to be accessible to anyone's eyes
+
+```{r}
+# Lab 2 Challenge Question 1
+#| label: dvs-2-ex-2
+#| label: medium-option-colors
+#| echo: true
+#| message: false
+#| warning: false
+
+p_base <- ggplot(
+  plot_df,
+  aes(x = species, y = weight, fill = sex)
+) +
+  geom_boxplot(
+    outlier.shape = NA,
+    position = position_dodge2(width = 0.8, preserve = "single")
+  ) +
+  geom_jitter(
+    aes(color = sex),
+    alpha = 0.35,
+    position = position_jitterdodge(
+      jitter.width = 0.15,
+      jitter.height = 0,
+      dodge.width = 0.8
+    )
+  ) +
+  labs(
+    title = "Rodent Weight by Species and Sex",
+    x = "Species",
+    y = "Weight (g)",
+    fill = "Sex",
+    color = "Sex"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+sex_cols <- c(F = "steelblue", M = "orange3")
+p_manual <- p_base +
+  scale_fill_manual(values = sex_cols) +
+  scale_color_manual(values = sex_cols, guide = "none")
+p_manual
+
+p_pkg <- p_base +
+  # Source: https://ggplot2.tidyverse.org/reference/scale_viridis.html
+  scale_fill_viridis_d(option = "C") +
+  scale_color_viridis_d(option = "C", guide = "none")
+p_pkg
+```
+
+-   I can modify my plot titles to clearly communicate the data context
+
+```{r}
+# Lab 4 Question 8
+#| label: dvs-2-ex-3
+#| label: scatterplot-median-income-vs-childcare-cost
+ca_childcare |>
+  filter(!is.na(mhi_2018), !is.na(mc_infant)) |>
+  mutate(
+    census_region = fct_reorder(census_region, mc_infant, .fun = median, .desc = TRUE)
+  ) |>
+  ggplot(aes(x = mhi_2018, y = mc_infant, color = census_region)) +
+  geom_point(alpha = 0.6, size = 1.5) +
+  geom_smooth(aes(group = 1), method = "lm", se = FALSE) +
+  scale_x_continuous(labels = scales::dollar_format(accuracy = 1)) +
+  scale_y_continuous(labels = scales::dollar_format(accuracy = 1)) +
+  labs(
+    x = "Median household income (2018 dollars)",
+    y = "Weekly price: center-based infant care ($)",
+    color = "California Region",
+    title = "Median Household Income vs. Infant Center-Based Childcare Prices (CA)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(aspect.ratio = 1)
+```
+
+-   I can modify the text in my plot to be more readable
+
+```{r}
+#| label: dvs-2-ex-4
+# Challenge 2 Embedding Legend in Plot Title
+#| echo: true
+#| label: html-subtitle
+#| eval: false
+
+ggplot(data = penguins, 
+       mapping = aes(x = bill_length_mm, y = species, color = island)
+       ) +
+  geom_boxplot() +
+  scale_color_manual(values = untitled_red) +
+  labs(x = "Bill Length (mm)", 
+       y = "", 
+       title = "Length of Different Penguin Species' Bills", 
+       subtitle = "Separated by <span style = 'color:#c8251d;'>Biscoe</span>, <span style = 'color:#a11b26;'>Dream</span> and <span style = 'color:#ef6552;'>Torgenson</span> Islands") +
+  theme(
+    legend.position = "none", 
+    plot.subtitle = element_markdown()
+    ) +
+  theme_bw()
+```
+
+-   I can reorder my legend to align with the colors in my plot
+
+```{r}
+#| label: dvs-2-ex-5
+# Challenge 2 Question 2
+# The legend order is F then M, which matches the order of colors in sex_cols.
+plot_df <- surveys %>%
+  filter(
+    !is.na(species), species != "",
+    !is.na(weight),  weight > 0,
+    sex %in% c("F", "M")
+  ) %>%
+  mutate(
+    species = fct_drop(as.factor(species)),
+    sex     = factor(sex, levels = c("F", "M"))
+  )
+
+sex_cols <- c(F = "steelblue", M = "orange3")
+p_manual <- p_base +
+  scale_fill_manual(values = sex_cols) +
+  scale_color_manual(values = sex_cols, guide = "none")
 
 ```
 
@@ -758,7 +992,7 @@ census_region = fct_reorder(
 -   I can use non-standard colors (Example 1)
 
 ```{r}
-# Challenge 2
+# Challenge 2 Question 2
 #| label: dvs-3-1-ex-1
 sex_cols <- c(F = "steelblue", M = "orange3")
 p_manual <- p_base +
@@ -767,10 +1001,74 @@ p_manual <- p_base +
 p_manual
 ```
 
+-   I can use non-standard colors (Example 2)
+
+```{r}
+#| label: dvs-3-1-ex-2
+# Lab 10 Question 13
+ci_plot_dat <- ci_dat %>%
+  mutate(
+    # https://dplyr.tidyverse.org/reference/row_number.html
+    sim = row_number(),
+    cover = factor(
+      cover,
+      levels = c(1, 0),
+      labels = c("Covers true slope", "Misses true slope")
+    )
+  ) %>%
+  filter(sim <= 100)
+
+ggplot(ci_plot_dat,
+       aes(x = sim, y = slope_est, ymin = ci_low, ymax = ci_high, color = cover)) +
+  geom_errorbar() +
+  geom_point(size = 0.8) +
+  geom_hline(yintercept = 0.5, linetype = "dashed") +
+  scale_color_manual(
+    values = c(
+      "Covers true slope" = "#0072B2",  # colorblind-friendly blue
+      "Misses true slope" = "#D55E00"   # colorblind-friendly orange
+    )
+  ) +
+  labs(
+    x = "Simulation number",
+    y = "Slope estimate with 95% CI",
+    color = "Interval",
+    title = "Confidence Interval Coverage for the Slope (First 100 Sims)"
+  ) +
+  theme_minimal()
+```
+
 -   I can use annotations (e.g., `geom_text()`)
 
 ```{r}
 #| label: dvs-3-2
+# Challenge 3 Question 2
+# Modified to add geom_text.
+ggplot(teacher_evals_compare, aes(x = sen_level, fill = SET_level)) +
+  geom_bar(stat = "count", position = "fill", width = 0.9) +
+  geom_text(
+    stat = "count",
+    # https://www.rdocumentation.org/packages/ggplot2/versions/2.1.0/topics/position_fill
+    position = position_fill(vjust = 0.5),
+    aes(
+      label = after_stat(
+        label_percent(accuracy = 1)(prop)
+      )
+    ),
+    color = "white",
+    size = 3.5
+  ) +
+  scale_y_continuous(labels = percent_format(accuracy = 1), expand = c(0, 0)) +
+  scale_fill_manual(
+    name = "Evaluation Rating",
+    values = c(excellent = "#B39DDB", standard = "#B48A54")
+  ) +
+  labs(
+    title = "Evaluation of Teachers' Use of Activities",
+    x = "Years of Experience", y = NULL
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(legend.position = "top", panel.grid.minor = element_blank())
 
 ```
 
@@ -778,37 +1076,67 @@ p_manual
 
 ```{r}
 #| label: dvs-3-3
+# Lab 10 Question 13
+ci_plot_dat <- ci_dat %>%
+  mutate(
+    # https://dplyr.tidyverse.org/reference/row_number.html
+    sim = row_number(),
+    cover = factor(
+      cover,
+      levels = c(1, 0),
+      labels = c("Covers true slope", "Misses true slope")
+    )
+  ) %>%
+  filter(sim <= 100)
 
+ggplot(ci_plot_dat,
+       aes(x = sim, y = slope_est, ymin = ci_low, ymax = ci_high, color = cover)) +
+  # Modified: Added geom_segment so each confidence interval drawn as a vertical segment
+  geom_segment(aes(xend = sim, y = ci_low, yend = ci_high)) +
+  geom_point(size = 0.8) +
+  geom_hline(yintercept = 0.5, linetype = "dashed") +
+  scale_color_manual(
+    values = c(
+      "Covers true slope" = "#0072B2",  # colorblind-friendly blue
+      "Misses true slope" = "#D55E00"   # colorblind-friendly orange
+    )
+  ) +
+  labs(
+    x = "Simulation number",
+    y = "Slope estimate with 95% CI",
+    color = "Interval",
+    title = "Confidence Interval Coverage for the Slope (First 100 Sims)"
+  ) +
+  theme_minimal()
 ```
 
 **DVS-4: I can calculate numerical summaries of variables.**
 
--   Example using `summarize() and across()`
+-   Example using `summarize()`
 
 ```{r}
-# Lab 4 Challenge
-#| label: dvs-4-summarize and dvs-4-across
-summary_table <- ca_childcare |>
-  filter(study_year %in% c(2008, 2018)) |>
-  group_by(census_region, study_year) |>
+# Lab 3 Question 6
+#| label: dvs-4-summarize
+teacher_evals_clean |>
   summarise(
-    center = median(mc_infant, na.rm = TRUE),
-    family = median(mfcc_infant, na.rm = TRUE),
-    .groups = "drop"
-  ) |>
-  pivot_wider(names_from = study_year, values_from = c(center, family), names_sep = "_") |>
-  mutate(
-    region = census_region,
-    `Center 2008` = center_2008,
-    `Family 2008` = family_2008,
-    `Center 2018` = center_2018,
-    `Family 2018` = family_2018,
-    `Gap 2018 (Center−Family)` = center_2018 - family_2018
-  ) |>
-  select(region, `Center 2008`, `Family 2008`, `Center 2018`, `Family 2018`, `Gap 2018 (Center−Family)`) |>
-  arrange(desc(`Center 2018`)) |>
-  mutate(across(where(is.numeric), ~ round(.)))
-kable(summary_table, caption = "Median weekly infant prices (USD) by region and setting, 2008 vs 2018")
+    unique_instructors = n_distinct(teacher_id),
+    unique_courses     = n_distinct(course_id)
+  )
+```
+
+-   Example using `across()`
+
+```{r}
+#| label: dvs-4-across
+# Lab 3 Question 3
+teacher_evals |>
+  summarise(across(
+    c(no_participants, resp_share, SET_score_avg, percent_failed_cur, seniority),
+    list(min = ~min(.x, na.rm = TRUE),
+         median = ~median(.x, na.rm = TRUE),
+         mean = ~mean(.x, na.rm = TRUE),
+         max = ~max(.x, na.rm = TRUE))
+  ))
 ```
 
 **DVS-5: I can find summaries of variables across multiple groups.**
@@ -817,7 +1145,7 @@ kable(summary_table, caption = "Median weekly infant prices (USD) by region and 
 
 ```{r}
 #| label: dvs-5-1
-# Lab 4 Challenge
+# Lab 4 Challenge Summary Table Trend Plot
 plot_data <- ca_childcare |>
   group_by(census_region, study_year) |>
   summarise(
@@ -856,36 +1184,67 @@ income_region_2008_2018 <- ca_childcare |>
 -   I can modify my column names to clearly communicate the data context
 
 ```{r}
-# Lab 4: Challenge
+# Lab 4 Challenge Summary Table
 #| label: dvs-6-ex-1
+# Modified to have descriptive names
 pivot_wider(names_from = study_year, values_from = c(center, family), names_sep = "_") |>
   mutate(
     region = census_region,
-    `Center 2008` = center_2008,
-    `Family 2008` = family_2008,
-    `Center 2018` = center_2018,
-    `Family 2018` = family_2018,
-    `Gap 2018 (Center−Family)` = center_2018 - family_2018
+    `Median center price, 2008 (USD/week)`  = center_2008,
+    `Median family price, 2008 (USD/week)`  = family_2008,
+    `Median center price, 2018 (USD/week)`  = center_2018,
+    `Median family price, 2018 (USD/week)`  = family_2018,
+    `Gap in 2018 (center − family, USD/week)` = center_2018 - family_2018
   )
 ```
 
 -   I can modify the text in my table to be more readable (e.g., bold face for column headers)
 
 ```{r}
-# Lab 4 Challenge
+# Lab 9 Question 3
 #| label: dvs-6-ex-2
-|>
-  mutate(across(where(is.numeric), ~ round(.)))
-knitr::kable(summary_table, caption = "Median weekly infant prices (USD) by region and setting, 2008 vs 2018")
+surveys |>
+  map_chr(~ class(.x)[1]) |>
+  enframe(name = "Variable", value = "Data Type") |>
+  arrange(`Data Type`, Variable) |>
+  gt() |>
+  cols_label(
+    Variable    = "Variable",
+    `Data Type` = "Data type"
+  ) |>
+  tab_header(
+    title = "Data types of variables in `surveys`"
+  ) |>
+  tab_style(
+  # https://gt.rstudio.com/reference/cell_text.html
+    style = cell_text(weight = "bold"),
+  # https://gt.rstudio.com/reference/cells_column_labels.html
+    locations = cells_column_labels()
+  )
 ```
 
 -   I can arrange my table to have an intuitive ordering
 
 ```{r}
-# Lab 4 Challenge
+# Lab 9 Question 7
 #| label: dvs-6-ex-3
-select(region, `Center 2008`, `Family 2008`, `Center 2018`, `Family 2018`, `Gap 2018 (Center−Family)`) |>
-  arrange(desc(`Center 2018`))
+fish %>%
+  map_int(~ sum(is.na(.x))) %>%
+  enframe(name = "Variable", value = "Missing_N") %>%
+  mutate(Missing_Pct = Missing_N / nrow(fish)) %>%
+  arrange(desc(Missing_N), Variable) %>%
+  gt() %>%
+  cols_label(
+# https://www.rdocumentation.org/packages/gt/versions/0.8.0/topics/md
+    Variable    = md("**Variable**"),
+    Missing_N   = md("**Missing (N)**"),
+    Missing_Pct = md("**Missing (%)**")
+  ) %>%
+  fmt_percent(columns = Missing_Pct, decimals = 1) %>%
+# https://gt.rstudio.com/reference/tab_header.html
+  tab_header(title = md("Missing Values by Variable — `fish`")) %>%
+# https://gt.rstudio.com/reference/opt_row_striping.html
+  opt_row_striping()
 ```
 
 **DVS-7: I show creativity in my tables.**
@@ -894,22 +1253,102 @@ select(region, `Center 2008`, `Family 2008`, `Center 2018`, `Family 2018`, `Gap 
 
 ```{r}
 #| label: dvs-7-ex-1
-
+# Lab 9 Question 8
+fish %>%
+  map_int(~ sum(is.na(.x))) %>%
+  enframe(name = "variable", value = "missing_n") %>%
+  arrange(desc(missing_n), variable) %>%
+  gt() %>%
+  cols_label(
+    variable  = md("**Measurement Variable**"),
+    missing_n = md("**Missing Values**")
+  ) %>%
+# https://www.rdocumentation.org/packages/gt/versions/1.1.0/topics/cols_align
+  cols_align(align = "center", columns = everything()) %>%
+  data_color(
+    columns = missing_n,
+    colors = function(x) {
+      col_numeric(
+        palette = viridis(5, option = "C"),
+        domain  = c(0, max(x, na.rm = TRUE))
+      )(x)
+    }
+  ) %>%
+# https://gt.rstudio.com/reference/tab_header.html
+  tab_header(
+    title = md("Number of Missing Values for Fish Measurements"),
+    subtitle = md("Data collected from 1989 to 2006 on the Blackfoot River in Montana")
+  ) %>%
+# https://gt.rstudio.com/reference/opt_row_striping.html
+  opt_row_striping()
 ```
 
 -   I can modify the layout of my table to be more readable (e.g., `pivot_longer()` or `pivot_wider()`)
 
 ```{r}
-# Lab 4 Question 5
+# Lab 9 Question 6
+# The important part is using pivot_longer() to turn the table into long layout with variable
+# and level
 #| label: dvs-7-ex-2
-income_region_2008_2018 <- ca_childcare |>
-  filter(study_year %in% c(2008, 2018)) |>
-  group_by(census_region, study_year) |>
-  summarise(median_mhi_2018 = median(mhi_2018, na.rm = TRUE), .groups = "drop") |>
-  pivot_wider(
-    names_from = study_year,
-    values_from = median_mhi_2018
-  )
+evals %>%
+  distinct(teacher_id, .keep_all = TRUE) %>%
+  mutate(
+    sen_level = case_when(
+      seniority <= 4 ~ "Junior",
+      seniority <= 8 ~ "Senior",
+      seniority >  8 ~ "Very Senior",
+      TRUE ~ NA_character_
+    ),
+    academic_degree = case_when(
+      str_to_lower(academic_degree) %in% c("phd","doctorate","doctoral") ~ "Doctorate",
+      str_to_lower(academic_degree) %in% c("masters","master","ma","ms")  ~ "Masters",
+      str_detect(str_to_lower(academic_degree), "no")            ~ "No Degree",
+      str_detect(str_to_lower(academic_degree), "tenur")         ~ "Tenured Professor",
+      TRUE ~ academic_degree
+    ),
+    sex = str_to_title(sex)
+  ) %>%
+  select(`Academic Degree` = academic_degree, `Seniority` = sen_level, `Sex` = sex) %>%
+  # pivot_longer used here
+  pivot_longer(everything(), names_to = "variable", values_to = "level") %>%
+  filter(!is.na(level)) %>%
+  filter(!(variable == "Seniority" & level == "Very Senior")) %>%
+  group_by(variable, level) %>%
+  summarise(n = n(), .groups = "drop_last") %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup() %>%
+  mutate(
+    variable = fct_relevel(variable, "Seniority","Sex","Academic Degree"),
+    level_order = case_when(
+# https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/match
+      variable == "Academic Degree" ~ match(level, c("No Degree","Masters","Doctorate","Tenured Professor")),
+      variable == "Seniority"       ~ match(level, c("Junior","Senior")),
+      variable == "Sex"             ~ match(level, c("Female","Male")),
+      TRUE ~ NA_integer_
+    )
+  ) %>%
+  arrange(variable, level_order, level) %>%
+  select(-level_order) %>%
+  gt(rowname_col = "level", groupname_col = "variable") %>%
+# https://gt.rstudio.com/reference/tab_stubhead.html
+  tab_stubhead(label = "Group") %>%
+  cols_label(
+    n    = "Count",
+    prop = "%"
+  ) %>%
+# https://gt.rstudio.com/reference/tab_spanner.html
+  tab_spanner(label = "Professors", columns = c(n, prop)) %>%
+  fmt_percent(columns = prop, decimals = 2) %>%
+# https://gt.rstudio.com/reference/fmt_number.html
+  fmt_number(columns = n, decimals = 0) %>%
+# https://gt.rstudio.com/reference/tab_header.html
+  tab_header(
+# https://www.rdocumentation.org/packages/gt/versions/0.8.0/topics/md
+    title = md("Demographics of Professors"),
+    subtitle = md("Student Evaluations at the University of Poland, Warsaw in 2020")
+  ) %>%
+# https://gt.rstudio.com/reference/opt_row_striping.html
+  opt_row_striping()
 ```
 
 ## Program Efficiency
@@ -919,29 +1358,57 @@ income_region_2008_2018 <- ca_childcare |>
 -   using a single function call with multiple inputs (rather than multiple function calls)
 
 ```{r}
-# Lab 4 Challenge
+# Lab 3 Question 3
 #| label: pe-1-one-call
-|> 
-pivot_wider(
-  names_from = study_year,
-  values_from = c(center, family),
-  names_sep = "_"
-) |>
+# Used one function call to tibble() using multiple inputs instead of many calls to tibble().
+tibble(
+  rows        = nrow(teacher_evals),
+  cols        = ncol(teacher_evals),
+  instructors = n_distinct(teacher_evals$teacher_id),
+  courses     = n_distinct(teacher_evals$course_id),
+  questions   = n_distinct(teacher_evals$question_no)
+)
 ```
 
 -   using `across()`
 
 ```{r}
-# Lab 4 Challenge
+# Lab 3 Question 3
 #| label: pe-1-across
-mutate(across(where(is.numeric), ~ round(.)))
+teacher_evals |>
+  # Used one summarise call with multiple inputs.
+  summarise(across(
+    c(no_participants, resp_share, SET_score_avg, percent_failed_cur, seniority),
+    list(min = ~min(.x, na.rm = TRUE),
+         median = ~median(.x, na.rm = TRUE),
+         mean = ~mean(.x, na.rm = TRUE),
+         max = ~max(.x, na.rm = TRUE))
+  ))
 ```
 
 -   using functions from the `map()` family
 
 ```{r}
 #| label: pe-1-map-1
-
+# Lab 9 Question 7
+# man_int applies same function to every column of fish.
+fish %>%
+  map_int(~ sum(is.na(.x))) %>%
+  enframe(name = "Variable", value = "Missing_N") %>%
+  mutate(Missing_Pct = Missing_N / nrow(fish)) %>%
+  arrange(desc(Missing_N), Variable) %>%
+  gt() %>%
+  cols_label(
+# https://www.rdocumentation.org/packages/gt/versions/0.8.0/topics/md
+    Variable    = md("**Variable**"),
+    Missing_N   = md("**Missing (N)**"),
+    Missing_Pct = md("**Missing (%)**")
+  ) %>%
+  fmt_percent(columns = Missing_Pct, decimals = 1) %>%
+# https://gt.rstudio.com/reference/tab_header.html
+  tab_header(title = md("Missing Values by Variable — `fish`")) %>%
+# https://gt.rstudio.com/reference/opt_row_striping.html
+  opt_row_striping()
 ```
 
 **PE-2: I can write functions to reduce repetition in my code.**
@@ -950,44 +1417,106 @@ mutate(across(where(is.numeric), ~ round(.)))
 
 ```{r}
 #| label: pe-2-1
-
+# Lab 10 Question 1
+randomBabies <- function(n_babies){
+  # https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/sample
+  assignment <- sample.int(n_babies, size = n_babies, replace = FALSE)
+  sum(assignment == 1:n_babies)
+}
 ```
 
 -   Example 2: Function that operates on data frames
 
 ```{r}
 #| label: pe-2-2
+# Lab 8 Question 1
+#| label: df-rescale-function
+rescale_01 <- function(x) {
+  if (!is.numeric(x)) {
+    stop("`x` must be numeric.")
+  }
+  if (length(x) <= 1) {
+    stop("`x` must have length greater than 1.")
+  }
+  r <- range(x, na.rm = TRUE)
+  (x - r[1]) / (r[2] - r[1])
+}
 
+rescale_column <- function(data, cols) {
+  mutate(data, across({{ cols }}, rescale_01))
+}
 ```
 
 -   Example 3: Function that operates on vectors *or* data frames
 
 ```{r}
 #| label: pe-2-3
-
+# Lab 8 Question 1
+#| label: pivot-table-function
+pivot_table <- function(data, row, col) {
+  data |>
+    count({{ row }}, {{ col }}, name = "n") |>
+    pivot_wider(
+      names_from  = {{ col }},
+      values_from = n,
+      values_fill = 0
+    ) |>
+    janitor::adorn_totals(where = c("row", "col"))
+}
 ```
 
-**PE-3:I can use iteration to reduce repetition in my code.**
+**PE-3: I can use iteration to reduce repetition in my code.**
 
 -   using `across()`
 
 ```{r}
 #| label: pe-3-across
-
+# Lab 4 Challenge Summary Table
+summary_table <- ca_childcare |>
+  filter(study_year %in% c(2008, 2018)) |>
+  group_by(census_region, study_year) |>
+  summarise(
+    center = median(mc_infant, na.rm = TRUE),
+    family = median(mfcc_infant, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  pivot_wider(names_from = study_year, values_from = c(center, family), names_sep = "_") |>
+  mutate(
+    region = census_region,
+    `Median center price, 2008 (USD/week)`  = center_2008,
+    `Median family price, 2008 (USD/week)`  = family_2008,
+    `Median center price, 2018 (USD/week)`  = center_2018,
+    `Median family price, 2018 (USD/week)`  = family_2018,
+    `Gap in 2018 (center − family, USD/week)` = center_2018 - family_2018
+  ) |>
+  select(region, `Center 2008`, `Family 2008`, `Center 2018`, `Family 2018`, `Gap 2018 (Center−Family)`) |>
+  arrange(desc(`Center 2018`)) |>
+  mutate(across(where(is.numeric), ~ round(.)))
+knitr::kable(summary_table, caption = "Median weekly infant prices (USD) by region and setting, 2008 vs 2018")
 ```
 
 -   using a `map()` function with **one** input (e.g., `map()`, `map_chr()`, `map_dbl()`, etc.)
 
 ```{r}
 #| label: pe-3-map-1
-
+# Lab 9 Question 4
+#| label: map-to-mutate-columns
+cols_to_factor <- c("course_id", "weekday", "academic_degree", "time_of_day", "sex")
+evals_factored <- bind_cols(
+  map_at(evals, cols_to_factor, as.factor)
+)
 ```
 
--   using a `map()` function with **more than one** input (e.g., `map_2()` or `pmap()`)
+-   using a `map()` function with **one** input
 
 ```{r}
 #| label: pe-3-map-2
-
+# Lab 9 Quesion 2
+#| label: map-data-types-of-surveys
+surveys |>
+  map_chr(~ class(.x)[1]) |>
+  enframe(name = "Variable", value = "Data Type") |>
+  kable(caption = "Data types of variables in `surveys`")
 ```
 
 **PE-4: I can use modern tools when carrying out my analysis.**
@@ -995,27 +1524,21 @@ mutate(across(where(is.numeric), ~ round(.)))
 -   I can use functions which are not superseded or deprecated
 
 ```{r}
-# Lab 3 Question 3
+# Lab 10 Question 3
 #| label: pe-4-1
-#| message: false
-tibble(
-  rows        = nrow(teacher_evals),
-  cols        = ncol(teacher_evals),
-  instructors = n_distinct(teacher_evals$teacher_id),
-  courses     = n_distinct(teacher_evals$course_id),
-  questions   = n_distinct(teacher_evals$question_no)
-)
+viz_data <- enframe(results, name = NULL, value = "n_correct") %>%
+  count(n_correct, name = "count") %>%
+  mutate(prop = count / sum(count))
 
-glimpse(teacher_evals)
+ggplot(viz_data, aes(x = factor(n_correct), y = prop)) +
+  geom_col() +
+  scale_y_continuous(labels = label_percent(accuracy = 1)) +
+  labs(
+    x = "Number of babies correctly matched",
+    y = "Proportion of simulations",
+    title = "Distribution of correctly matched babies (n = 4, 10,000 sims)"
+  )
 
-teacher_evals |>
-  summarise(across(
-    c(no_participants, resp_share, SET_score_avg, percent_failed_cur, seniority),
-    list(min = ~min(.x, na.rm = TRUE),
-         median = ~median(.x, na.rm = TRUE),
-         mean = ~mean(.x, na.rm = TRUE),
-         max = ~max(.x, na.rm = TRUE))
-  ))
 ```
 
 -   I can connect a data wrangling pipeline into a `ggplot()`
@@ -1075,14 +1598,41 @@ census_region = fct_reorder(
 
 ```{r}
 #| label: dsm-1-1
+# Lab 10 Question 3
+#| label: data-generation
 
+# define slope and intercept parameters
+intercept = 2
+slope = 1
+
+# generate x vector
+x <- runif(n = 100, min = 0, max = 1)
+
+# generate noise `ep` vector
+ep <- rnorm(n = 100, mean = 0, sd = 1)
+
+# generate outcome from population model
+y = intercept + x*slope + ep
+
+# create an "observed data" dataframe with only the x and y vectors
+observed_data <- tibble(x = x, y = y)
 ```
 
 -   Example 2
 
 ```{r}
 #| label: dsm-1-2
-
+# Lab 10 Question 1
+randomBabies <- function(n_babies){
+  # https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/sample
+  assignment <- sample.int(n_babies, size = n_babies, replace = FALSE)
+  sum(assignment == 1:n_babies)
+}
+set.seed(123)
+results <- map_int(
+  .x = 1:10000,
+  .f = ~ randomBabies(4)
+)
 ```
 
 **DSSM-2: I can conduct common statistical analyses in R.**
@@ -1112,27 +1662,16 @@ summary(species_mod)
 -   Example 2
 
 ```{r}
-# Lab 4 Question 9
+# Lab 10 Question 5 and 6
 #| label: dsm-2-2
-reg_mod1 <- lm(mc_infant ~ mhi_2018, data = ca_childcare)
-summary(reg_mod1)
-```
+fit_lm <- lm(y ~ x, data = observed_data)
 
--   Example 3
+summary(fit_lm)
 
-```{r}
-# Lab 3 Challenge Part 3
-#| label: dsm-2-3
-#| label: chi-square-test
-comp <- teacher_evals_compare |>
-  select(set = SET_level, seniority = sen_level)
+slope_ci <- tidy(fit_lm, conf.int = TRUE, conf.level = 0.95) %>%
+  filter(term == "x")
 
-tab <- xtabs(~ set + seniority, data = comp)
-chi_out <- chisq.test(tab)
-
-chi_out
-chi_out$observed
-chi_out$expected
+slope_ci
 ```
 
 ## Revising My Thinking
@@ -1164,6 +1703,8 @@ Another way I extended my thinking was connecting what you taught about using sh
 <https://www.w3.org/WAI/standards-guidelines/wcag/>
 
 I also extended my thinking by looking at different ways of using piping instead of just "\|\>" but also "%\>%" as I remember in class this being mentioned. I learned that there are different ways because packages were introduced in the language based on what popular third party packages were doing to constantly improve the R language, therefore making it continuously evolving. The nature of this is to always look for efficiency and better ways of accomplishing goals.
+
+I think the biggest way I extended my thinking was in the constructions of my plots. I did this in Lab 10 Question 13, where we were only given instructions to create a coverage rate plot. After constructing the "coverage plot", I realized that the plot made it difficult to actually showcase "coverage" which I thought would be best done by a bar plot or pie chart. This is because all the "lines" representing simulations should be collapsed to distinguish them which I created in addition to what was expected.
 
 ## Peer Support & Collaboration
 

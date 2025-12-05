@@ -6,16 +6,22 @@ editor: visual
 
 **Answer each of the following questions with *one sentence* including a brief explanation.**
 
-1. Finish the sentence with another student’s name: "If [Name of Student] doesn’t earn an A, then nobody should, because..." Explain your choice and your reasoning.
+1.  Finish the sentence with another student’s name: "If \[Name of Student\] doesn’t earn an A, then nobody should, because..." Explain your choice and your reasoning.
 
+    Kyrene Angelica Banta Tigas, because I reviewed their code twice and both times I found concise code which taught me how to make my own code more efficient.
 
-2. What was the most difficult part of the class for you? List a general topic, a specific problem, a kind of work we did, etc. and explain why.
+2.  What was the most difficult part of the class for you? List a general topic, a specific problem, a kind of work we did, etc. and explain why.
 
+    Time criminal investigation Colab / Practice Activity because it was uniquely challenging in using time for unexpected purposes. I really found taking something and using it for a different purpose to be fun and difficult.
 
-3. What was the easiest part of the class for you? Explain why.
+3.  What was the easiest part of the class for you? Explain why.
 
+    Labs with straight forward instructions such as SQL Murder, partially because the instructions were very clear but also because I understand joins pretty well due my computer science background.
 
-4. What part of the class surprised or interested you the most? Explain why.
+4.  What part of the class surprised or interested you the most? Explain why.
 
+    Definitely all of the Colab Practice Activities as they were really fun. I haven't pair programmed before despite being a computer science major so this was a really fun change of pace and also challenging due to programming in front of someone else.
 
-5. Give one piece of advice to a student just beginning a quarter of STAT 331 that will help them be successful in learning.
+5.  Give one piece of advice to a student just beginning a quarter of STAT 331 that will help them be successful in learning.
+
+    Take the time to write down functions in a digital notebook so that you can easily search functions you've used before when working on labs.
