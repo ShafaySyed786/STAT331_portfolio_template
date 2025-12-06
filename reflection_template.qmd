@@ -513,6 +513,7 @@ pal10 <- colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(10)
 
 ca_childcare |>
   select(study_year, census_region, mc_infant, mc_toddler, mc_preschool) |>
+  # Change wide multiple age price columns into long
   pivot_longer(
   cols = starts_with("mc_"),
   names_to = "age",
@@ -521,10 +522,12 @@ ca_childcare |>
   values_drop_na = TRUE
   ) |>
   mutate(
+  # Rename age categories and set display order
   age = fct_recode(factor(age),
   "Infant" = "infant",
   "Toddler" = "toddler",
   "Preschool" = "preschool"),
+  # Reorder regions based on 2018 infant prices
   age = fct_relevel(age, "Infant", "Toddler", "Preschool"),
 census_region = fct_reorder(
   census_region,
@@ -533,8 +536,10 @@ census_region = fct_reorder(
   .desc = TRUE
   )
 ) |>
+  # price over time which is colored by region
   ggplot(aes(study_year, weekly_price, color = census_region)) +
   geom_point(alpha = 0.6, size = 1.7) +
+  # trend lines with confidence bands
   geom_smooth(method = "loess", formula = y ~ x, se = TRUE, linewidth = 0.8) +
   facet_wrap(~ age, nrow = 1) +
   scale_x_continuous(breaks = seq(2008, 2018, 2), limits = c(2008, 2018)) +
@@ -561,10 +566,12 @@ census_region = fct_reorder(
 ```{r}
 # Challenge 3 Part 1
 #| label: r-2-2
+# Keep only rows for question 903
 teacher_evals_compare <- teacher_evals |>
   filter(question_no == 903) |>
   mutate(
     SET_level = if_else(SET_score_avg >= 4, "excellent", "standard"),
+    # Categorize instructor seniority into groups
     sen_level = case_when(
       seniority <= 4 ~ "junior",
       seniority <= 8 ~ "senior",
@@ -605,12 +612,12 @@ summary_table <- ca_childcare |>
     `Gap in 2018 (center − family, USD/week)` = center_2018 - family_2018
   ) |>
   select(
-    region,
-    `Center 2008`,
-    `Family 2008`,
-    `Center 2018`,
-    `Family 2018`,
-    `Gap 2018 (Center−Family)`
+  region,
+    `Median center price, 2008 (USD/week)`,
+    `Median family price, 2008 (USD/week)`,
+    `Median center price, 2018 (USD/week)`,
+    `Median family price, 2018 (USD/week)`,
+    `Gap in 2018 (center − family, USD/week)`
   ) |>
   arrange(desc(`Center 2018`)) |>
   mutate(
