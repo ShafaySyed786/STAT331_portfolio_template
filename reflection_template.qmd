@@ -225,14 +225,21 @@ summary_table <- ca_childcare |>
   ) |>
   pivot_wider(names_from = study_year, values_from = c(center, family), names_sep = "_") |>
   mutate(
-    region = census_region,
-    `Center 2008` = center_2008,
-    `Family 2008` = family_2008,
-    `Center 2018` = center_2018,
-    `Family 2018` = family_2018,
-    `Gap 2018 (Center−Family)` = center_2018 - family_2018
+      region = census_region,
+      `Median center price, 2008 (USD/week)`
+      `Median family price, 2008 (USD/week)`
+      `Median center price, 2018 (USD/week)`
+      `Median family price, 2018 (USD/week)`
+      `Gap in 2018 (center − family, USD/week)`
   ) |>
-  select(region, `Center 2008`, `Family 2008`, `Center 2018`, `Family 2018`, `Gap 2018 (Center−Family)`) |>
+    select(
+    region,
+    `Median center price, 2008 (USD/week)`,
+    `Median family price, 2008 (USD/week)`,
+    `Median center price, 2018 (USD/week)`,
+    `Median family price, 2018 (USD/week)`,
+    `Gap in 2018 (center − family, USD/week)`
+  ) |>
   arrange(desc(`Center 2018`)) |>
   mutate(across(where(is.numeric), ~ round(.)))
 kable(summary_table, caption = "Median weekly infant prices (USD) by region and setting, 2008 vs 2018")
@@ -1496,7 +1503,14 @@ summary_table <- ca_childcare |>
     `Median family price, 2018 (USD/week)`  = family_2018,
     `Gap in 2018 (center − family, USD/week)` = center_2018 - family_2018
   ) |>
-  select(region, `Center 2008`, `Family 2008`, `Center 2018`, `Family 2018`, `Gap 2018 (Center−Family)`) |>
+    select(
+    region,
+    `Median center price, 2008 (USD/week)`,
+    `Median family price, 2008 (USD/week)`,
+    `Median center price, 2018 (USD/week)`,
+    `Median family price, 2018 (USD/week)`,
+    `Gap in 2018 (center − family, USD/week)`
+  ) |>
   arrange(desc(`Center 2018`)) |>
   mutate(across(where(is.numeric), ~ round(.)))
 knitr::kable(summary_table, caption = "Median weekly infant prices (USD) by region and setting, 2008 vs 2018")
